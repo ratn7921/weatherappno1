@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style>
+        /* Add your CSS styles here */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.5s ease;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        form {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        .weather-details {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img.weather-icon {
+            width: 50px;
+            height: 50px;
+            vertical-align: middle;
+        }
+        iframe#google-map {
+            width: 100%;
+            height: 300px;
+            border: none;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+    
+    
+</head>
+<body>
+    <div class="container">
+        <h1>Weather App</h1>
+        <form id="search-form">
+            <input type="text" id="search-input" placeholder="Enter city name...">
+            <button type="submit">Search</button>
+        </form>
+        <div class="weather-details">
+            <h2>Current Weather</h2>
+            <div>
+                <strong>Temperature:</strong> <span id="temp"></span><br>
+                <strong>Description:</strong> <span id="description"></span><br>
+                <strong>Humidity:</strong> <span id="humidity"></span><br>
+                <strong>Wind:</strong> <span id="wind"></span><br>
+            </div>
+            <img id="weather-icon" class="weather-icon" src="" alt="Weather Icon">
+            <table id="weather-table">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th>Local Time</th>
+                        <th>Humidity</th>
+                        <th>Wind</th>
+                        <th>Temperature</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Weather data will be inserted here dynamically -->
+                </tbody>
+            </table>
+        </div>
+        <iframe id="google-map" src="" frameborder="0" allowfullscreen></iframe>
+    </div>
+
+    <script>
+        const cities = [
+            { name: 'Mumbai', lat: '19.0760', lon: '72.8777' },
+            { name: 'Pune', lat: '18.5204', lon: '73.8567' },
+            { name: 'Kolkata', lat: '22.5726', lon: '88.3639' },
+            { name: 'Delhi', lat: '28.7041', lon: '77.1025' },
+            { name: 'London', lat: '51.5074', lon: '-0.1278' },
+            { name: 'Boston', lat: '42.3601', lon: '-71.0589' },
+            { name: 'Moscow', lat: '55.7558', lon: '37.6173' },
+            { name: 'Tokyo', lat: '35.6895', lon: '139.6917' },
+            { name: 'Los Angeles', lat: '34.0522', lon: '-118.2437' },
+            { name: 'Solapur', lat: '17.6599', lon: '75.9064' },
+            { name: 'Pandharpur', lat: '17.6792', lon: '75.3310' },
+            { name: 'Kolhapur', lat: '16.7040', lon: '74.2433' },
+            { name: 'Ichalkaranji', lat: '16.6919', lon: '74.4605' },
+
+            // Amravati District
+            { name: 'Amravati', lat: '20.9333', lon: '77.7500' },
+            { name: 'Achalpur', lat: '21.2578', lon: '77.5084' },
+
+            // Jalgaon District
+            { name: 'Jalgaon', lat: '21.0077', lon: '75.5626' },
+            { name: 'Bhusawal', lat: '21.0466', lon: '75.7818' },
+
+            // Akola District
+            { name: 'Akola', lat: '20.6976', lon: '77.0082' },
+            { name: 'Murtijapur', lat: '20.7305', lon: '77.3712' },
+
+            // Other notable cities
+            { name: 'Latur', lat: '18.4088', lon: '76.5604' },
+            { name: 'Nanded', lat: '19.1383', lon: '77.3210' },
+            { name: 'Dhule', lat: '20.9042', lon: '74.7749' },
+            { name: 'Ahmednagar', lat: '19.0952', lon: '74.7496' },
+            { name: 'Chandrapur', lat: '19.9615', lon: '79.2961' },
+            { name: 'Parbhani', lat: '19.2608', lon: '76.7766' },
+            { name: 'Jalna', lat: '19.8410', lon: '75.8864' }
+        ];
+
+        const weatherImages = {
+            'cloudy': 'cloudy.jpg',
+            'sunny': 'sunny.jpg',
+            'rainy': 'rainy.jpg',
+            'cold': 'cold.jpg'
+        };
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchForm = document.getElementById('search-form');
+            const googleMap = document.getElementById('google-map');
+            
+            searchForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const searchInput = document.getElementById('search-input').value;
+                const city = cities.find(city => city.name.toLowerCase() === searchInput.toLowerCase());
+                if (city) {
+                    updateWeatherData(city.lat, city.lon);
+                    updateGoogleMap(city.lat, city.lon);
+                } else {
+                    alert('City not found. Please enter a valid city name.');
+                }
+            });
+
+            // Initial call to update the weather data
+            updateWeatherDataByCityIndex();
+        });
+
+        async function updateWeatherData(lat, lon) {
+            const apiKey = 'd2c6c7582bffa5be14b625b995eb89c3';
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+
+            try {
+                const response = await fetch(url);
+                const weatherData = await response.json();
+
+                const locationName = `${weatherData.name}, ${weatherData.sys.country}`;
+                const localtime = new Date(weatherData.dt * 1000).toLocaleString();
+                const temp = `${weatherData.main.temp}°C (${(weatherData.main.temp * 9 / 5 + 32).toFixed(1)}°F)`;
+                const condition = weatherData.weather[0].description;
+                const conditionIcon = `http://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`;
+                const humidity = `${weatherData.main.humidity}%`;
+                const wind = `${weatherData.wind.speed} m/s ${weatherData.wind.deg}°`;
+
+                document.getElementById('temp').textContent = temp;
+                document.getElementById('description').textContent = condition;
+                document.getElementById('weather-icon').src = conditionIcon;
+                document.getElementById('humidity').textContent = humidity;
+                document.getElementById('wind').textContent = wind;
+
+                const weatherTable = document.getElementById('weather-table').getElementsByTagName('tbody')[0];
+                const newRow = `
+                    <tr>
+                        <td>${locationName}</td>
+                        <td>${localtime}</td>
+                        <td>${humidity}</td>
+                        <td>${wind}</td>
+                        <td>${temp}</td>
+                    </tr>
+                `;
+                weatherTable.innerHTML = newRow;
+
+                // Update background image based on condition
+                if (condition.includes('cloud')) {
+                    document.body.style.backgroundImage = `url('${weatherImages.cloudy}')`;
+                } else if (condition.includes('sun')) {
+                    document.body.style.backgroundImage = `url('${weatherImages.sunny}')`;
+                } else if (condition.includes('rain')) {
+                    document.body.style.backgroundImage = `url('${weatherImages.rainy}')`;
+                } else if (condition.includes('cold')) {
+                    document.body.style.backgroundImage = `url('${weatherImages.cold}')`;
+                }
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
+            }
+        }
+
+        async function updateWeatherDataByCityIndex() {
+            const city = cities[0]; // Default city to display on load
+            updateWeatherData(city.lat, city.lon);
+            updateGoogleMap(city.lat, city.lon); // Update map on initial load
+        }
+
+        function updateGoogleMap(lat, lon) {
+            const mapUrl = `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d1936944.5515835185!2d${lon}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sin!4v1720184952496!5m2!1sen!2sin`;
+            googleMap.src = mapUrl;
+        }
+    </script>
+</body>
+</html>
